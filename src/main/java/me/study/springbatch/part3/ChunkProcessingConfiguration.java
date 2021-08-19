@@ -2,9 +2,11 @@ package me.study.springbatch.part3;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
+import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -13,8 +15,10 @@ import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +40,7 @@ public class ChunkProcessingConfiguration {
         return jobBuilderFactory.get("chunkProcessingJob")
                 .incrementer(new RunIdIncrementer())
                 .start(taskBaseStep())
-                .next(chunkBaseStep())
+                .next(chunkBaseStep(null))
                 .build();
     }
 
@@ -52,8 +56,10 @@ public class ChunkProcessingConfiguration {
 
         return (contribution, chunkContext) -> {
             StepExecution stepExecution = contribution.getStepExecution();
+            JobParameters jobParameters = stepExecution.getJobParameters();
 
-            int chunkSize = 10;
+            String value = jobParameters.getString("chunkSize", "10");
+            int chunkSize = StringUtils.hasText(value) ? Integer.parseInt(value) : 10;
             int fromIndex = stepExecution.getReadCount();
             int toIndex = fromIndex + chunkSize;
 
@@ -82,9 +88,10 @@ public class ChunkProcessingConfiguration {
     }
 
     @Bean
-    public Step chunkBaseStep() {
+    @JobScope
+    public Step chunkBaseStep(@Value("#{jobParameters[chunkSize]}") String chunkSize) {
         return stepBuilderFactory.get("chunkBaseStep")
-                .<String, String>chunk(10)
+                .<String, String>chunk(StringUtils.hasText(chunkSize) ? Integer.parseInt(chunkSize) : 10)
                 .reader(itemReader())
                 .processor(itemProcessor())
                 .writer(itemWriter())
@@ -100,9 +107,6 @@ public class ChunkProcessingConfiguration {
     }
 
     private ItemWriter<? super String> itemWriter() {
-        return items -> {
-            log.info("chunk item size: {}", items.size());
-//            items.forEach(log::info);
-        };
+        return items -> log.info("chunk item size: {}", items.size());
     }
 }
