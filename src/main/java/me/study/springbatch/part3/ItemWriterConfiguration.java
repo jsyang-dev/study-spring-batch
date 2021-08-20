@@ -8,6 +8,9 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
+import org.springframework.batch.item.database.JdbcBatchItemWriter;
+import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
@@ -16,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 
+import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,10 +30,14 @@ public class ItemWriterConfiguration {
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
+    private final DataSource dataSource;
 
-    public ItemWriterConfiguration(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory) {
+    public ItemWriterConfiguration(JobBuilderFactory jobBuilderFactory,
+                                   StepBuilderFactory stepBuilderFactory,
+                                   DataSource dataSource) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
+        this.dataSource = dataSource;
     }
 
     @Bean
@@ -37,6 +45,7 @@ public class ItemWriterConfiguration {
         return jobBuilderFactory.get("itemWriterJob")
                 .incrementer(new RunIdIncrementer())
                 .start(csvItemWriterStep())
+                .next(jdbcBatchItemWriterStep())
                 .build();
     }
 
@@ -46,6 +55,15 @@ public class ItemWriterConfiguration {
                 .<Person, Person>chunk(100)
                 .reader(itemReader())
                 .writer(csvFileItemWriter())
+                .build();
+    }
+
+    @Bean
+    public Step jdbcBatchItemWriterStep() {
+        return stepBuilderFactory.get("jdbcBatchItemWriterStep")
+                .<Person, Person>chunk(100)
+                .reader(itemReader())
+                .writer(jdbcBatchItemWriter())
                 .build();
     }
 
@@ -82,5 +100,15 @@ public class ItemWriterConfiguration {
                 .build();
         csvFileItemWriter.afterPropertiesSet();
         return csvFileItemWriter;
+    }
+
+    private ItemWriter<Person> jdbcBatchItemWriter() {
+        JdbcBatchItemWriter<Person> itemWriter = new JdbcBatchItemWriterBuilder<Person>()
+                .dataSource(dataSource)
+                .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
+                .sql("insert into person(name, age, address) values(:name, :age, :address)")
+                .build();
+        itemWriter.afterPropertiesSet();
+        return itemWriter;
     }
 }
