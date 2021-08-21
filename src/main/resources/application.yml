@@ -4,4 +4,4 @@ spring:
       names: ${job.name:NONE}
   datasource:
     driver-class-name: org.h2.Driver
-    data: classpath:person.sql
+#    data: classpath:person.sql
