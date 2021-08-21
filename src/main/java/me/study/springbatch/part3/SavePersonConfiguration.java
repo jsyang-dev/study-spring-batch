@@ -103,7 +103,7 @@ public class SavePersonConfiguration {
                 new DuplicateValidationProcessor<>(Person::getName, allowDuplicate);
 
         CompositeItemProcessor<Person, Person> itemProcessor = new CompositeItemProcessorBuilder<Person, Person>()
-                .delegates(validationProcessor, duplicateValidationProcessor)
+                .delegates(new PersonValidationRetryProcessor(), validationProcessor, duplicateValidationProcessor)
                 .build();
         itemProcessor.afterPropertiesSet();
         return itemProcessor;
