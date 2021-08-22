@@ -11,6 +11,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -36,6 +37,15 @@ public class User {
         this.totalAmount = totalAmount;
     }
 
+    public boolean availableLevelUp() {
+        return level.availableLevelUp(totalAmount);
+    }
+
+    public void levelUp() {
+        level = level.getNextLevel(getTotalAmount());
+        updatedDate = LocalDate.now();
+    }
+
     public enum Level {
         VIP(500_000, null),
         GOLD(500_000, VIP),
@@ -48,6 +58,29 @@ public class User {
         Level(int nextAmount, Level nextLevel) {
             this.nextAmount = nextAmount;
             this.nextLevel = nextLevel;
+        }
+
+        private boolean availableLevelUp(int totalAmount) {
+            if (Objects.isNull(nextLevel)) {
+                return false;
+            }
+            return totalAmount >= nextAmount;
+        }
+
+        private Level getNextLevel(int totalAmount) {
+            if (totalAmount >= Level.VIP.nextAmount) {
+                return VIP;
+            }
+            if (totalAmount >= Level.GOLD.nextAmount) {
+                return Level.GOLD.nextLevel;
+            }
+            if (totalAmount >= Level.SILVER.nextAmount) {
+                return Level.SILVER.nextLevel;
+            }
+            if (totalAmount >= Level.NORMAL.nextAmount) {
+                return Level.NORMAL.nextLevel;
+            }
+            return NORMAL;
         }
     }
 }
