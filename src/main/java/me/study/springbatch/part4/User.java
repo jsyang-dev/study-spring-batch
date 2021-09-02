@@ -3,6 +3,7 @@ package me.study.springbatch.part4;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import me.study.springbatch.part5.Orders;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;

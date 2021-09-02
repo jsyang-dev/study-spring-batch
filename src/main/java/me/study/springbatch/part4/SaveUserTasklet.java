@@ -1,5 +1,6 @@
 package me.study.springbatch.part4;
 
+import me.study.springbatch.part5.Orders;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -35,7 +36,7 @@ public class SaveUserTasklet implements Tasklet {
             users.add(User.builder()
                     .orders(Collections.singletonList(Orders.builder()
                             .amount(1_000)
-                            .createDate(LocalDate.of(2020, 11, 1))
+                            .createdDate(LocalDate.of(2020, 11, 1))
                             .itemName("item" + i)
                             .build()))
                     .username("test username" + i)
@@ -46,7 +47,7 @@ public class SaveUserTasklet implements Tasklet {
             users.add(User.builder()
                     .orders(Collections.singletonList(Orders.builder()
                             .amount(200_000)
-                            .createDate(LocalDate.of(2020, 11, 2))
+                            .createdDate(LocalDate.of(2020, 11, 2))
                             .itemName("item" + i)
                             .build()))
                     .username("test username" + i)
@@ -57,7 +58,7 @@ public class SaveUserTasklet implements Tasklet {
             users.add(User.builder()
                     .orders(Collections.singletonList(Orders.builder()
                             .amount(300_000)
-                            .createDate(LocalDate.of(2020, 11, 3))
+                            .createdDate(LocalDate.of(2020, 11, 3))
                             .itemName("item" + i)
                             .build()))
                     .username("test username" + i)
@@ -68,7 +69,7 @@ public class SaveUserTasklet implements Tasklet {
             users.add(User.builder()
                     .orders(Collections.singletonList(Orders.builder()
                             .amount(500_000)
-                            .createDate(LocalDate.of(2020, 11, 4))
+                            .createdDate(LocalDate.of(2020, 11, 4))
                             .itemName("item" + i)
                             .build()))
                     .username("test username" + i)

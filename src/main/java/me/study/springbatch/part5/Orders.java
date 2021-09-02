@@ -1,4 +1,4 @@
-package me.study.springbatch.part4;
+package me.study.springbatch.part5;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -23,12 +23,12 @@ public class Orders {
 
     private int amount;
 
-    private LocalDate createDate;
+    private LocalDate createdDate;
 
     @Builder
-    private Orders(String itemName, int amount, LocalDate createDate) {
+    private Orders(String itemName, int amount, LocalDate createdDate) {
         this.itemName = itemName;
         this.amount = amount;
-        this.createDate = createDate;
+        this.createdDate = createdDate;
     }
 }
