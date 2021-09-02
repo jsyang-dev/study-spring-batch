@@ -1,6 +1,7 @@
 package me.study.springbatch.part4;
 
 import lombok.extern.slf4j.Slf4j;
+import me.study.springbatch.part5.JobParametersDecider;
 import me.study.springbatch.part5.OrderStatistics;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -64,8 +65,11 @@ public class UserConfiguration {
                 .incrementer(new RunIdIncrementer())
                 .start(saveUserStep())
                 .next(userLevelUpStep())
-                .next(orderStatisticsStep(null))
                 .listener(new LevelUpJobExecutionListener(userRepository))
+                .next(new JobParametersDecider("date"))
+                .on(JobParametersDecider.CONTINUE.getName())
+                .to(orderStatisticsStep(null))
+                .build()
                 .build();
     }
 
