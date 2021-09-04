@@ -13,7 +13,7 @@ import java.util.List;
 
 public class SaveUserTasklet implements Tasklet {
 
-    public static final int SIZE = 100;
+    public static final int SIZE = 10_000;
 
     private final UserRepository userRepository;
 

@@ -1,6 +1,10 @@
-package me.study.springbatch.part4;
+package me.study.springbatch.part6;
 
 import lombok.extern.slf4j.Slf4j;
+import me.study.springbatch.part4.LevelUpJobExecutionListener;
+import me.study.springbatch.part4.SaveUserTasklet;
+import me.study.springbatch.part4.User;
+import me.study.springbatch.part4.UserRepository;
 import me.study.springbatch.part5.JobParametersDecider;
 import me.study.springbatch.part5.OrderStatistics;
 import org.springframework.batch.core.Job;
@@ -9,6 +13,8 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.integration.async.AsyncItemProcessor;
+import org.springframework.batch.integration.async.AsyncItemWriter;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
@@ -25,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.task.TaskExecutor;
 
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
@@ -34,12 +41,13 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
 
 @Configuration
 @Slf4j
-public class UserConfiguration {
+public class AsyncUserConfiguration {
 
-    private static final String JOB_NAME = "userJob";
+    private static final String JOB_NAME = "asyncUserJob";
     private static final int CHUNK = 1_000;
 
     private final JobBuilderFactory jobBuilderFactory;
@@ -47,17 +55,19 @@ public class UserConfiguration {
     private final UserRepository userRepository;
     private final EntityManagerFactory entityManagerFactory;
     private final DataSource dataSource;
+    private final TaskExecutor taskExecutor;
 
-    public UserConfiguration(JobBuilderFactory jobBuilderFactory,
-                             StepBuilderFactory stepBuilderFactory,
-                             UserRepository userRepository,
-                             EntityManagerFactory entityManagerFactory,
-                             DataSource dataSource) {
+    public AsyncUserConfiguration(JobBuilderFactory jobBuilderFactory,
+                                  StepBuilderFactory stepBuilderFactory,
+                                  UserRepository userRepository,
+                                  EntityManagerFactory entityManagerFactory,
+                                  DataSource dataSource, TaskExecutor taskExecutor) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.userRepository = userRepository;
         this.entityManagerFactory = entityManagerFactory;
         this.dataSource = dataSource;
+        this.taskExecutor = taskExecutor;
     }
 
     @Bean(JOB_NAME)
@@ -84,7 +94,7 @@ public class UserConfiguration {
     @Bean(JOB_NAME + "_userLevelUpStep")
     public Step userLevelUpStep() throws Exception {
         return stepBuilderFactory.get(JOB_NAME + "_userLevelUpStep")
-                .<User, User>chunk(CHUNK)
+                .<User, Future<User>>chunk(CHUNK)
                 .reader(itemReader())
                 .processor(itemProcessor())
                 .writer(itemWriter())
@@ -112,20 +122,29 @@ public class UserConfiguration {
         return itemReader;
     }
 
-    private ItemProcessor<User, User> itemProcessor() {
-        return user -> {
+    private AsyncItemProcessor<User, User> itemProcessor() {
+        ItemProcessor<User, User> itemProcessor = user -> {
             if (user.availableLevelUp()) {
                 return user;
             }
             return null;
         };
+
+        AsyncItemProcessor<User, User> asyncItemProcessor = new AsyncItemProcessor<>();
+        asyncItemProcessor.setDelegate(itemProcessor);
+        asyncItemProcessor.setTaskExecutor(taskExecutor);
+        return asyncItemProcessor;
     }
 
-    private ItemWriter<User> itemWriter() {
-        return users -> users.forEach(x -> {
+    private AsyncItemWriter<User> itemWriter() {
+        ItemWriter<User> itemWriter = users -> users.forEach(x -> {
             x.levelUp();
             userRepository.save(x);
         });
+
+        AsyncItemWriter<User> asyncItemWriter = new AsyncItemWriter<>();
+        asyncItemWriter.setDelegate(itemWriter);
+        return asyncItemWriter;
     }
 
     private ItemReader<OrderStatistics> orderStatisticsItemReader(String date) throws Exception {
